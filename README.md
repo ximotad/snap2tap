@@ -1,73 +1,183 @@
-# Welcome to your Lovable project
 
-## Project info
+# Flete Inspection PWA
 
-**URL**: https://lovable.dev/projects/57181923-334c-4e7a-ab21-3ac256360d1d
+A mobile-first Progressive Web App for rental equipment inspections, built with React, Supabase, and Tailwind CSS. Mirrors Record360's end-to-end inspection workflow with features like barcode scanning, photo/video capture, digital signatures, and offline support.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- 📱 **Mobile-First Design**: Touch-optimized UI with ≥44px touch targets
+- 📷 **Media Capture**: Photo and video recording with background uploads
+- ✍️ **Digital Signatures**: Canvas-based signature capture
+- 📊 **Dynamic Checklists**: Different forms based on transaction type
+- 🔄 **Real-time Sync**: Supabase real-time updates
+- 📴 **Offline Support**: Service worker with static asset caching
+- 📧 **Email Notifications**: Send inspection reports to recipients
+- 🏗️ **PWA Ready**: Installable as native app
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/57181923-334c-4e7a-ab21-3ac256360d1d) and start prompting.
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **Build Tool**: Vite
+- **UI Components**: shadcn/ui
+- **State Management**: React hooks
+- **PWA**: Service Worker, Web App Manifest
 
-Changes made via Lovable will be committed automatically to this repo.
+## Quick Start
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js 18+ and pnpm
+- Supabase account
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Local Development
 
-Follow these steps:
+1. **Clone and install dependencies**
+   ```bash
+   git clone <repository-url>
+   cd flete-inspection-mvp
+   pnpm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. **Set up Supabase**
+   - Create a new Supabase project
+   - Run the SQL schema from `scripts/supabase-schema.sql`
+   - Create storage buckets: `inspections_media`, `signatures`
+   - Get your project URL and anon key
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. **Environment setup**
+   ```bash
+   cp .env.example .env.local
+   # Add your Supabase credentials
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. **Start development server**
+   ```bash
+   pnpm dev
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Supabase Setup
+
+1. **Database Schema**
+   ```sql
+   -- Run scripts/supabase-schema.sql in Supabase SQL Editor
+   ```
+
+2. **Storage Buckets**
+   - Create `inspections_media` bucket (public read, authenticated write)
+   - Create `signatures` bucket (public read, authenticated write)
+
+3. **RLS Policies** (disabled for demo, enable in production)
+   ```sql
+   -- Enable RLS and create policies based on your auth requirements
+   ```
+
+### Production Deployment
+
+#### Vercel (Recommended)
+
+1. **Connect GitHub repo to Vercel**
+2. **Set environment variables**:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. **Deploy**: Vercel will automatically build and deploy
+
+#### Manual Deployment
+
+```bash
+pnpm build
+# Deploy dist/ folder to your hosting provider
 ```
 
-**Edit a file directly in GitHub**
+## Project Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+src/
+├── components/           # React components
+│   ├── ui/              # Reusable UI components
+│   ├── asset-lookup-screen.tsx
+│   ├── transaction-type-screen.tsx
+│   ├── media-capture-screen.tsx
+│   ├── checklist-screen.tsx
+│   ├── review-and-sign-screen.tsx
+│   ├── records-list-screen.tsx
+│   └── record-detail-screen.tsx
+├── lib/                 # Utilities
+│   └── supabase.ts      # Supabase client
+├── types/               # TypeScript definitions
+│   └── database.ts      # Database types
+└── pages/
+    └── Index.tsx        # Main app component
 
-**Use GitHub Codespaces**
+public/
+├── manifest.json        # PWA manifest
+├── sw.js               # Service worker
+├── icon-192.png        # App icons
+└── icon-512.png
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+scripts/
+├── supabase-schema.sql  # Database schema
+└── seed.sql            # Demo data
+```
 
-## What technologies are used for this project?
+## Usage Flow
 
-This project is built with:
+1. **Asset Lookup**: Enter/scan asset ID, view open transactions
+2. **Transaction Type**: Select checkout/return/update
+3. **Media Capture**: Take photos/videos with camera
+4. **Checklist**: Fill dynamic form based on transaction type
+5. **Review & Sign**: Add recipients, capture signature, submit
+6. **Records**: View inspection history and details
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## API Integration
 
-## How can I deploy this project?
+The app uses Supabase for:
+- **Database**: PostgreSQL with real-time subscriptions
+- **Storage**: File uploads for media and signatures
+- **Auth**: JWT-based authentication (demo uses fixed token)
+- **Edge Functions**: Email notifications (optional)
 
-Simply open [Lovable](https://lovable.dev/projects/57181923-334c-4e7a-ab21-3ac256360d1d) and click on Share -> Publish.
+## PWA Features
 
-## Can I connect a custom domain to my Lovable project?
+- **Installable**: Add to home screen on mobile devices
+- **Offline**: Service worker caches static assets
+- **Touch-optimized**: All interactive elements ≥44px
+- **Performance**: Lazy loading, optimized images
 
-Yes, you can!
+## Demo Data
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The app includes seeded demo data:
+- **TRUCK123**: Asset with open checkout transaction
+- **FORKLIFT9**: Asset with closed transaction history
+- Sample media files and inspection records
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Development Notes
+
+- **Authentication**: Currently uses demo token, integrate real auth in production
+- **File Upload**: Uses Supabase storage with TUS for large files
+- **Real-time**: Supabase real-time updates for multi-user scenarios
+- **Validation**: Form validation with TypeScript and Zod
+- **Accessibility**: ARIA labels, keyboard navigation, screen reader support
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+For issues and questions:
+- Create GitHub issue
+- Check Supabase docs for backend questions
+- Review React/Vite docs for frontend questions
+
+---
+
+**Built with ❤️ for efficient equipment inspections**
