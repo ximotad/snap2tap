@@ -1,86 +1,76 @@
-
 'use client'
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { WizardLayout } from '@/components/ui/wizard-layout'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Scan, Calendar } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Scan, Search } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
-interface OpenInspection {
-  id: string
-  workflow_name: string
-  created_at: string
-  type: string
-}
-
 interface AssetLookupScreenProps {
-  onNext: (assetId: string, selectedInspection?: OpenInspection) => void
+  onNext: (assetCode: string, selectedInspection?: any) => void
 }
 
 export function AssetLookupScreen({ onNext }: AssetLookupScreenProps) {
   const [assetCode, setAssetCode] = useState('')
-  const [openInspections, setOpenInspections] = useState<OpenInspection[]>([
-    {
-      id: '1',
-      workflow_name: 'Bronx Checkout',
-      created_at: '2022-10-11T10:30:00Z',
-      type: 'checkout'
-    }
+  const [isLoading, setIsLoading] = useState(false)
+  const [recentAssets, setRecentAssets] = useState([
+    { code: 'TRUCK123', lastUsed: '2 hours ago' },
+    { code: 'TRAILER456', lastUsed: '1 day ago' },
+    { code: 'FORKLIFT789', lastUsed: '3 days ago' },
   ])
-  const [selectedInspection, setSelectedInspection] = useState<OpenInspection | null>(null)
-  const [loading, setLoading] = useState(false)
 
-  const handleScan = () => {
-    // In a real app, this would open camera for barcode scanning
-    toast({
-      title: "Scanner Ready",
-      description: "Barcode scanner would open here. For demo, enter 'TRUCK123' or 'FORKLIFT9'",
-    })
-  }
-
-  const handleLookup = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
     if (!assetCode.trim()) {
       toast({
         title: "Error",
-        description: "Please enter an asset ID",
+        description: "Please enter an asset code",
         variant: "destructive"
       })
       return
     }
-
-    setLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      if (assetCode.toUpperCase() === 'TRUCK123') {
-        setOpenInspections([
-          {
-            id: '1',
-            workflow_name: 'Bronx Checkout',
-            created_at: '2022-10-11T10:30:00Z',
-            type: 'checkout'
-          }
+    setIsLoading(true)
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Add to recent assets if not already there
+      if (!recentAssets.some(asset => asset.code === assetCode)) {
+        setRecentAssets(prev => [
+          { code: assetCode, lastUsed: 'just now' },
+          ...prev.slice(0, 4)
         ])
-      } else {
-        setOpenInspections([])
       }
-      setLoading(false)
-    }, 1000)
-  }
-
-  const handleContinue = () => {
-    if (selectedInspection) {
-      onNext(assetCode, selectedInspection)
+      
+      onNext(assetCode)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to find asset. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleStartNew = () => {
-    onNext(assetCode)
+  const handleScanBarcode = () => {
+    // In a real app, this would trigger the device camera for barcode scanning
+    toast({
+      title: "Barcode Scanner",
+      description: "Barcode scanning would open here in the real app"
+    })
+  }
+
+  const handleRecentAssetClick = (code: string) => {
+    setAssetCode(code)
   }
 
   return (
@@ -90,111 +80,67 @@ export function AssetLookupScreen({ onNext }: AssetLookupScreenProps) {
       stepTitle="Asset Lookup"
     >
       <div className="space-y-6">
-        {/* Asset ID Input */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Enter or Scan Asset ID
-          </label>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex space-x-2">
             <Input
-              placeholder="Asset ID (e.g., TRUCK123)"
+              placeholder="Enter asset code or scan barcode"
               value={assetCode}
               onChange={(e) => setAssetCode(e.target.value)}
               className="flex-1 min-h-[44px]"
-              onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+              disabled={isLoading}
             />
             <Button
+              type="button"
               variant="outline"
-              onClick={handleScan}
+              onClick={handleScanBarcode}
               className="min-h-[44px] min-w-[44px] p-2"
+              disabled={isLoading}
             >
               <Scan className="h-5 w-5" />
             </Button>
           </div>
-          <Button
-            onClick={handleLookup}
-            disabled={!assetCode.trim() || loading}
+          
+          <Button 
+            type="submit" 
             className="w-full min-h-[44px]"
+            disabled={isLoading}
           >
-            {loading ? 'Looking up...' : 'Lookup Asset'}
-          </Button>
-        </div>
-
-        {/* Open Inspections */}
-        {assetCode && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Open Inspections for {assetCode.toUpperCase()}
-            </h3>
-            
-            {openInspections.length === 0 ? (
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    No open inspections found
-                  </p>
-                  <Button
-                    onClick={handleStartNew}
-                    className="min-h-[44px] bg-blue-600 hover:bg-blue-700"
-                  >
-                    Start New Inspection
-                  </Button>
-                </CardContent>
-              </Card>
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Searching...</span>
+              </div>
             ) : (
-              <>
-                <div className="space-y-3">
-                  {openInspections.map((inspection) => (
-                    <Card
-                      key={inspection.id}
-                      className={`cursor-pointer transition-colors min-h-[60px] ${
-                        selectedInspection?.id === inspection.id
-                          ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                      onClick={() => setSelectedInspection(inspection)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white">
-                              {inspection.workflow_name}
-                            </h4>
-                            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                              <Calendar className="h-4 w-4" />
-                              <span>
-                                {new Date(inspection.created_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          <Badge variant="destructive">
-                            OPEN TRANSACTION
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={handleContinue}
-                    disabled={!selectedInspection}
-                    className="flex-1 min-h-[44px] bg-blue-600 hover:bg-blue-700"
-                  >
-                    Continue Selected
-                  </Button>
-                  <Button
-                    onClick={handleStartNew}
-                    variant="outline"
-                    className="flex-1 min-h-[44px]"
-                  >
-                    Start New
-                  </Button>
-                </div>
-              </>
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4" />
+                <span>Find Asset</span>
+              </div>
             )}
-          </div>
+          </Button>
+        </form>
+
+        {recentAssets.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Assets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {recentAssets.map((asset) => (
+                  <div 
+                    key={asset.code}
+                    className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleRecentAssetClick(asset.code)}
+                  >
+                    <div className="font-medium">{asset.code}</div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="outline">{asset.lastUsed}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </WizardLayout>

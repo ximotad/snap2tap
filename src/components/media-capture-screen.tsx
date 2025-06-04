@@ -1,12 +1,12 @@
 
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { WizardLayout } from '@/components/ui/wizard-layout'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Camera, Video, RotateCcw, Trash2 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Camera, Video, RotateCcw, Trash2, Play, Pause } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 interface MediaItem {
