@@ -42,32 +42,16 @@ export function MediaCaptureScreen({ onNext, onBack, uuid, user }: MediaCaptureS
   const [showReview, setShowReview] = useState(false)
 
 
-  useEffect(() => {
-    const testInsert = async () => {
-      const { error } = await supabase.from('Media').insert({
-        type: 'test',
-        url: 'https://images.pistonheads.com/nimg/45397/009.jpg',
-        inspection_id: '4777ce15-92ef-4b7e-9096-24e5f259ec39',
-      })
-  
-      if (error) {
-        console.error('❌ Supabase insert failed:', error)
-      } else {
-        console.log('✅ Supabase insert succeeded')
-      }
-    }
-  
-    testInsert()
-  }, [])
-
   // Check for iframe and allow="camera"
-  useEffect(() => {
+  /*
+ useEffect(() => {
     if (window.self !== window.top) {
       // Running inside an iframe, but can't verify permissions due to cross-origin
       setIframeWarning('⚠️ App is running in an iframe. Ensure the embed includes allow="camera".');
       console.warn('Running in iframe. Cannot verify iframe attributes due to cross-origin.');
     }
   }, []);
+*/
 
   const startCamera = useCallback(async () => {
     if (hasStartedCamera.current) {
