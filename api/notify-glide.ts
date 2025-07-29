@@ -11,15 +11,24 @@ export const config = {
         headers: { 'Content-Type': 'application/json' },
       })
     }
-  
-    // Dummy test payload
-    const payload = {
-      inspection_id: 'dummy-inspection-id-123',
-      media: [
-        'https://dummy.com/image1.jpg',
-        'https://dummy.com/image2.jpg',
-      ],
-      status: 'complete',
+
+    // Parse the request body
+    let payload
+    try {
+      payload = await req.json()
+    } catch (error) {
+      return new Response(JSON.stringify({ message: 'Invalid JSON payload' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Validate required fields
+    if (!payload.inspection_id || !payload.media || !Array.isArray(payload.media)) {
+      return new Response(JSON.stringify({ message: 'Missing required fields: inspection_id and media array' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
   
     try {
