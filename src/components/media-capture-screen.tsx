@@ -54,27 +54,44 @@ export function MediaCaptureScreen({ onNext, onBack, uuid, user }: MediaCaptureS
 */
 
   const startCamera = useCallback(async () => {
-    if (hasStartedCamera.current) {
-      console.log('Camera already started, skipping getUserMedia.');
-      return;
-    }
     setCameraError(null);
     try {
       console.log('Requesting camera access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
-      hasStartedCamera.current = true;
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode }, 
+        audio: true 
+      });
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
       setCameraStream(stream);
+      setCameraActive(true);
+      hasStartedCamera.current = true;
       console.log('Camera access granted, stream started.');
     } catch (error: any) {
       console.error('Error accessing camera:', error);
-      setCameraError('Camera access denied or unavailable. Please check your browser permissions.');
+      hasStartedCamera.current = false;
+      setCameraActive(false);
+      setCameraStream(null);
+      
+      let errorMessage = 'Camera access denied or unavailable. Please check your browser permissions.';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera access denied. Please allow camera permissions and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found. Please check your device has a camera.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'Camera not supported in this browser. Please try a different browser.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is in use by another application. Please close other camera apps and try again.';
+      }
+      
+      setCameraError(errorMessage);
       toast({
         title: "Camera Error",
-        description: error?.message || "Unable to access camera. Please check permissions.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -122,53 +139,113 @@ export function MediaCaptureScreen({ onNext, onBack, uuid, user }: MediaCaptureS
     }
   }
 
+  // Helper function to get supported MediaRecorder MIME type
+  const getSupportedMimeType = () => {
+    const types = [
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=h264,opus',
+      'video/webm',
+      'video/mp4',
+      'video/ogg;codecs=theora,vorbis'
+    ];
+    
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        console.log('Using MediaRecorder MIME type:', type);
+        return type;
+      }
+    }
+    
+    console.warn('No supported MediaRecorder MIME type found, using default');
+    return '';
+  }
+
   const toggleRecording = () => {
-    if (!cameraStream) return
+    if (!cameraStream) {
+      console.error('No camera stream available for recording');
+      toast({
+        title: "Recording Error",
+        description: "Camera stream not available. Please restart camera.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (isRecording) {
       // Stop recording
       if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+        console.log('Recording stopped');
       }
-      setIsRecording(false)
     } else {
       // Start recording
-      const mediaRecorder = new MediaRecorder(cameraStream)
-      const chunks: BlobPart[] = []
-      
-      mediaRecorder.ondataavailable = (event) => {
-        chunks.push(event.data)
-      }
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' })
-        const videoUrl = URL.createObjectURL(blob)
+      try {
+        const mediaRecorder = new MediaRecorder(cameraStream, {
+          mimeType: getSupportedMimeType() || 'video/webm;codecs=vp8,opus'
+        });
+        const chunks: BlobPart[] = []
         
-        const newVideo: MediaItem = {
-          id: Date.now().toString(),
-          type: 'video',
-          url: videoUrl,
-          uploading: true,
-          uploaded: false
+        mediaRecorder.ondataavailable = (event) => {
+          console.log('Recording data available:', event.data.size, 'bytes');
+          chunks.push(event.data)
         }
         
-        setMediaItems(prev => [...prev, newVideo])
-        
-        // Simulate upload
-        setTimeout(() => {
-          setMediaItems(prev => 
-            prev.map(item => 
-              item.id === newVideo.id 
-                ? { ...item, uploading: false, uploaded: true }
-                : item
+        mediaRecorder.onstop = () => {
+          console.log('Recording stopped, creating video blob');
+          const blob = new Blob(chunks, { type: 'video/webm' })
+          const videoUrl = URL.createObjectURL(blob)
+          
+          const newVideo: MediaItem = {
+            id: Date.now().toString(),
+            type: 'video',
+            url: videoUrl,
+            uploading: true,
+            uploaded: false
+          }
+          
+          setMediaItems(prev => [...prev, newVideo])
+          
+          // Simulate upload
+          setTimeout(() => {
+            setMediaItems(prev => 
+              prev.map(item => 
+                item.id === newVideo.id 
+                  ? { ...item, uploading: false, uploaded: true }
+                  : item
+              )
             )
-          )
-        }, 3000)
+          }, 3000)
+          
+          toast({
+            title: "Video Captured!",
+            description: "Video added to inspection",
+          })
+        }
+        
+        mediaRecorder.onerror = (event) => {
+          console.error('MediaRecorder error:', event);
+          setIsRecording(false);
+          toast({
+            title: "Recording Error",
+            description: "Failed to start video recording. Please try again.",
+            variant: "destructive"
+          });
+        }
+        
+        mediaRecorderRef.current = mediaRecorder
+        mediaRecorder.start(1000); // Collect data every second
+        setIsRecording(true)
+        console.log('Recording started');
+      } catch (error) {
+        console.error('Error starting recording:', error);
+        toast({
+          title: "Recording Error",
+          description: "Failed to start video recording. Please try again.",
+          variant: "destructive"
+        });
       }
-      
-      mediaRecorderRef.current = mediaRecorder
-      mediaRecorder.start()
-      setIsRecording(true)
     }
   }
 
@@ -241,6 +318,19 @@ export function MediaCaptureScreen({ onNext, onBack, uuid, user }: MediaCaptureS
           <div className="flex flex-col items-center justify-center min-h-[300px]">
             <Button onClick={handleEnableCamera} className="min-h-[56px] min-w-[180px] text-lg">Start Camera</Button>
             <p className="mt-4 text-gray-500 text-center">Tap to enable your camera and microphone</p>
+            {cameraError && (
+              <div className="mt-4 text-center">
+                <p className="text-red-600 text-sm mb-2">{cameraError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEnableCamera}
+                  className="text-sm"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <>
