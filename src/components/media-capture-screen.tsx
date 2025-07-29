@@ -63,23 +63,9 @@ export function MediaCaptureScreen({ onNext, onBack, uuid, user }: MediaCaptureS
   // Check for iframe and allow="camera"
   useEffect(() => {
     if (window.self !== window.top) {
-      // Running in iframe
-      const iframes = window.parent.document.getElementsByTagName('iframe');
-      let found = false;
-      for (let i = 0; i < iframes.length; i++) {
-        if (iframes[i].contentWindow === window) {
-          found = true;
-          const allow = iframes[i].getAttribute('allow') || '';
-          if (!allow.includes('camera')) {
-            setIframeWarning('⚠️ This embed may not have camera permissions. The iframe should include allow="camera".');
-            console.warn('Iframe does not have allow="camera". Camera access may fail.');
-          }
-        }
-      }
-      if (!found) {
-        setIframeWarning('⚠️ Unable to verify iframe camera permissions.');
-        console.warn('Could not find current iframe in parent.');
-      }
+      // Running inside an iframe, but can't verify permissions due to cross-origin
+      setIframeWarning('⚠️ App is running in an iframe. Ensure the embed includes allow="camera".');
+      console.warn('Running in iframe. Cannot verify iframe attributes due to cross-origin.');
     }
   }, []);
 
