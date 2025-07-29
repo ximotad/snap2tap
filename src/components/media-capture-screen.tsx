@@ -61,7 +61,7 @@ export function MediaCaptureScreen({ onNext, onBack, uuid, user }: MediaCaptureS
     setCameraError(null);
     try {
       console.log('Requesting camera access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode } }, audio: true });
       hasStartedCamera.current = true;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
