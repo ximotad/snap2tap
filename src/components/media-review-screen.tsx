@@ -1,8 +1,78 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Trash2, Loader2, CheckCircle, XCircle, Video } from 'lucide-react'
+
+interface VideoPreviewFallbackProps {
+  url: string
+}
+
+function VideoPreviewFallback({ url }: VideoPreviewFallbackProps) {
+  const [hasError, setHasError] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleLoadStart = () => setIsLoading(true)
+    const handleCanPlay = () => setIsLoading(false)
+    const handleError = () => {
+      setIsLoading(false)
+      setHasError(true)
+    }
+
+    video.addEventListener('loadstart', handleLoadStart)
+    video.addEventListener('canplay', handleCanPlay)
+    video.addEventListener('error', handleError)
+
+    return () => {
+      video.removeEventListener('loadstart', handleLoadStart)
+      video.removeEventListener('canplay', handleCanPlay)
+      video.removeEventListener('error', handleError)
+    }
+  }, [url])
+
+  // Always show fallback UI when there's an error
+  if (hasError) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500">
+        <div className="relative">
+          <Video className="h-8 w-8 text-gray-400" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-0.5 bg-gray-400 rotate-45" />
+          </div>
+        </div>
+        <p className="text-xs text-center px-2 mt-2">
+          Playback not available on this device
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {!hasError && (
+        <video
+          ref={videoRef}
+          src={url}
+          className="w-full h-full object-cover"
+          controls
+          preload="metadata"
+          playsInline
+          muted
+        />
+      )}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+          <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        </div>
+      )}
+    </div>
+  )
+}
 import { supabase } from '@/lib/supabase'
 
 // Re-declare MediaItem type for now; ideally import from media-capture-screen
@@ -196,12 +266,7 @@ export function MediaReviewScreen({ mediaItems: initialMedia, onRestart, onConfi
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <video
-                        src={item.url}
-                        className="w-full h-full object-cover"
-                        controls
-                        preload="metadata"
-                      />
+                      <VideoPreviewFallback url={item.url} />
                     )}
                     {item.tagTimestamp && (
                       <Badge className="absolute top-1 left-1 text-xs">
